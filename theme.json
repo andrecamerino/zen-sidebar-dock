@@ -1,0 +1,9 @@
+{
+  "id": "zen-sidebar-dock",
+  "name": "Zen Sidebar Dock",
+  "description": "Cmd+Shift+S forces the sidebar to its permanently docked, icon-only state (compact mode off + sidebar width forced minimal) - the opposite of Zen's native Cmd+S popover/overlay sidebar.",
+  "version": "1.0.0",
+  "scripts": {
+    "sidebar-dock.uc.js": {}
+  }
+}
