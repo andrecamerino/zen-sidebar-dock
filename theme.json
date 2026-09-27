@@ -1,8 +1,8 @@
 {
   "id": "zen-sidebar-dock",
   "name": "Zen Sidebar Dock",
-  "description": "Cmd+Shift+S toggles a permanently docked, icon-only sidebar visible/gone. Cmd+S is untouched in both states - it always opens Zen's native full-width floating popover sidebar.",
-  "version": "3.0.0",
+  "description": "Cmd+Shift+S toggles a permanently docked, icon-only sidebar visible/gone by mirroring Zen's own \"Collapsed Sidebar\" Browser Layout preset. Cmd+S is untouched in both states - compact mode is a separate axis this mod no longer touches.",
+  "version": "4.0.0",
   "scripts": {
     "sidebar-dock.uc.js": {}
   }
