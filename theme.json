@@ -1,8 +1,8 @@
 {
   "id": "zen-sidebar-dock",
   "name": "Zen Sidebar Dock",
-  "description": "Cmd+Shift+S toggles the sidebar into/out of a permanently docked, icon-only state (compact mode off + width minimal). While docked, Cmd+S widens it in place to full width instead of Zen's native popover, since compact mode's hover-hide has no minimal resting state to fall back to.",
-  "version": "2.0.0",
+  "description": "Cmd+Shift+S toggles a permanently docked, icon-only sidebar visible/gone. Cmd+S is untouched in both states - it always opens Zen's native full-width floating popover sidebar.",
+  "version": "3.0.0",
   "scripts": {
     "sidebar-dock.uc.js": {}
   }

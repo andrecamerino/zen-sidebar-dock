@@ -1,35 +1,26 @@
-// sidebar-dock.uc.js — Sine mod: Cmd+Shift+S toggles the sidebar into/out of
-// a permanently docked, icon-only ("minimal") state - the opposite of Zen's
-// own Cmd+S (cmd_toggleCompactModeIgnoreHover), which flips compact mode on
-// and pins the sidebar open as a hover-style overlay/popover on top of the
-// page. While docked, Cmd+S is repurposed to widen the docked sidebar to its
-// full (labeled) width in place, instead of invoking Zen's native overlay.
+// sidebar-dock.uc.js — Sine mod: Cmd+Shift+S toggles a permanently docked,
+// icon-only ("minimal") sidebar visible/gone. Cmd+S is left completely
+// untouched in both states - it always runs Zen's native
+// cmd_toggleCompactModeIgnoreHover, opening the full-width floating popover
+// sidebar, regardless of whether the permanent dock is currently showing.
 //
-// Why Cmd+S can't just be left alone while docked: Zen's compact-mode hover
-// system (ZenCompactMode.mjs) has no "stay visible but minimal" resting
-// state - once compact mode is enabled, moving the mouse off the sidebar
-// hides it completely (that's the whole point of compact mode). Enabling it
-// on top of our permanent dock would make the "permanent" bar vanish on the
-// next mouseout, defeating the feature. So instead, whenever our dock is
-// active, we intercept Cmd+S ourselves and just flip sidebar width in place
-// (still docked, still pushing page content, never floating) rather than
-// letting the native hover/overlay command run.
-//
-// The two axes involved, verified against Zen's source
-// (ZenCompactMode.mjs / ZenUIManager.mjs):
-//   - `gZenCompactModeManager.preference` is a live getter/setter backed by
-//     the `zen-compact-mode` root attribute (persisted to the
-//     `zen.view.compact.enable-at-startup` pref) and gates ALL of compact
-//     mode's hover/overlay CSS. Forcing it false makes the sidebar render in
-//     normal in-flow document layout - permanently visible, pushing page
-//     content - regardless of hover state.
-//   - `zen.view.sidebar-expanded` (pref, flipped by
-//     gZenVerticalTabsManager.toggleExpand(), which also updates the
-//     `zen-sidebar-expanded` attribute) controls sidebar width: full (icons
-//     + labels) vs minimal (icons only), independent of the above. This is
-//     read unconditionally at `:root` (sidebar.inc.css), so it applies to
-//     compact mode's overlay too - there's no separate "overlay width" state
-//     to keep the dock minimal while a same-pref overlay shows full.
+// Verified against Zen's source (ZenCompactMode.mjs / ZenUIManager.mjs):
+//   - `gZenCompactModeManager.preference` (getter/setter backed by the
+//     `zen-compact-mode` root attribute) gates all of compact mode's
+//     hover/overlay behavior. Forcing it false renders the sidebar in
+//     normal in-flow layout - permanently visible, pushing page content -
+//     regardless of hover state. Its setter calls its own _updateEvent()
+//     synchronously, so this takes effect immediately.
+//   - `zen.view.sidebar-expanded` controls width (full labels vs
+//     icon-only), flipped via gZenVerticalTabsManager.toggleExpand().
+//     Unlike compact mode's setter, toggleExpand() only writes the pref and
+//     relies on an async lazy-pref-observer to eventually call
+//     ZenUIManager's own _updateEvent() to flip the `zen-sidebar-expanded`
+//     DOM attribute - which is what made this glitchy (the visual change
+//     wouldn't apply until some unrelated settings change happened to also
+//     trigger that observer). We call _updateEvent() ourselves right after,
+//     matching what Zen's own pref-change handler does
+//     (`{ dontRebuildAreas: true }`), to force it to apply synchronously.
 (function () {
   if (window.__zenSidebarDockInstalled) return;
   window.__zenSidebarDockInstalled = true;
@@ -43,6 +34,7 @@
   const setExpanded = (value) => {
     if (Services.prefs.getBoolPref(SIDEBAR_EXPANDED_PREF, true) !== value) {
       window.gZenVerticalTabsManager?.toggleExpand();
+      window.gZenVerticalTabsManager?._updateEvent({ dontRebuildAreas: true });
     }
   };
 
@@ -71,31 +63,25 @@
     priorSidebarExpanded = null;
   };
 
-  const toggleDock = () => (docked ? exitDock() : enterDock());
-
-  const toggleDockedWidth = () => {
-    setExpanded(!Services.prefs.getBoolPref(SIDEBAR_EXPANDED_PREF, true));
-  };
-
   window.addEventListener(
     "keydown",
     (event) => {
-      if (!event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key.toLowerCase() !== "s") return;
-
-      if (event.shiftKey) {
-        toggleDock();
-        event.preventDefault();
-        event.stopImmediatePropagation();
+      if (
+        !event.metaKey ||
+        !event.shiftKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.key.toLowerCase() !== "s"
+      ) {
         return;
       }
 
-      if (docked) {
-        toggleDockedWidth();
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-      // Not docked and plain Cmd+S: let Zen's native shortcut run untouched.
+      docked ? exitDock() : enterDock();
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      // Cmd+S (no shift) is intentionally left unhandled here - it always
+      // falls through to Zen's native shortcut, in both docked and
+      // undocked states.
     },
     { capture: true }
   );
